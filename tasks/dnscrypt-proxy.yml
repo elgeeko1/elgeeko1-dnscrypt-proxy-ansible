@@ -3,12 +3,13 @@
   template:
     src:   "dnscrypt-proxy.toml.j2"
     dest:  "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
-    mode:  0775
+    mode:  0755
   register: dnscrypt_config
+  become: true
 
 - name: Docker pull gists/dnscrypt-proxy:latest
   docker_image:
-    name: djaydev/dnscrypt-proxy:latest
+    name: gists/dnscrypt-proxy:latest
     source: pull
     force_source: true
   register: dockerimage
@@ -21,7 +22,6 @@
     restart: "{{ dnscrypt_config.changed or dockerimage.changed }}"
     restart_policy: unless-stopped
     volumes:
-      - "{{ dnscrypt_proxy_path }}/cache:/config/cache"
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
     ports:
       - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"

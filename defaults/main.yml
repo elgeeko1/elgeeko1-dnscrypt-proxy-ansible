@@ -2,7 +2,7 @@
 dnscrypt_proxy_port: 53
 
 # path to install dnscrypt-proxy persistant storage
-dnscrypt_proxy_path: /data/dnscrypt-proxy
+dnscrypt_proxy_path: /opt/dnscrypt-proxy
 
 # use ipv6 in dnscrypt-proxy?
 dnscrypt_proxy_use_ipv6: false
