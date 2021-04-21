@@ -1,0 +1,113 @@
+server_names = [
+  'quad9-dnscrypt-ip4-filter-pri',
+  'quad9-dnscrypt-ip4-filter-alt'
+{% if dnscrypt_proxy_use_ipv6 %},
+  'quad9-dnscrypt-ip6-filter-pri',
+  'quad9-dnscrypt-ip6-filter-alt'
+{% endif %} 
+]
+
+# "When using socket activation the listen_addresses option
+# must be set to empty (i.e. listen_addresses = [ ]) in the
+# configuration file, since systemd is taking care of the
+# socket configuration.
+# listen_addresses = []
+# listen_addresses = ['127.0.2.1:{{ dnscrypt_proxy_port }}']
+listen_addresses = ['0.0.0.0:{{ dnscrypt_proxy_port }}']
+
+# log_file = '/var/log/dnscrypt-proxy/dnscrypt-proxy.log'
+
+max_clients = 2000
+
+# Use servers reachable over IPv4
+ipv4_servers = true
+
+# Use servers reachable over IPv6 -- Do not enable if you don't have IPv6 connectivity
+ipv6_servers = {{ dnscrypt_proxy_use_ipv6 | lower }}
+
+# Use servers implementing the DNSCrypt protocol
+dnscrypt_servers = true
+
+# Use servers implementing the DNS-over-HTTPS protocol
+doh_servers = true
+
+# Server must support DNS security extensions (DNSSEC)
+require_dnssec = false
+
+# Server must not log user queries (declarative)
+require_nolog = true
+
+# Server must not enforce its own blacklist (for parental control, ads blocking...)
+require_nofilter = false
+
+# Server names to avoid even if they match all criteria
+disabled_server_names = []
+
+# DNSCrypt: Create a new, unique key for every single DNS query
+dnscrypt_ephemeral_keys = true
+
+# DoH: Disable TLS session tickets - increases privacy but also latency
+tls_disable_session_tickets = false
+
+# Fallback resolver
+# This is a normal, non-encrypted DNS resolver, that will be only used
+# for one-shot queries when retrieving the initial resolvers list, and
+# only if the system DNS configuration doesn't work.
+# No user application queries will ever be leaked through this resolver,
+# and it will not be used after IP addresses of resolvers URLs have been found.
+# It will never be used if lists have already been cached, and if stamps
+# don't include host names without IP addresses.
+# It will not be used if the configured system DNS works.
+# A resolver supporting DNSSEC is recommended.
+# Popular options include 8.8.8.8 and 1.1.1.1.
+fallback_resolver = '9.9.9.9:53'
+netprobe_address = '9.9.9.9:53'
+
+# Always use the fallback resolver before the system DNS settings
+ignore_system_dns = true
+
+# Enable a DNS cache to reduce latency and outgoing traffic
+cache = true
+
+[sources]
+  # Quad9 over DNSCrypt - https://quad9.net/
+  [sources.quad9-resolvers]
+  urls = ['https://www.quad9.net/quad9-resolvers.md']
+  minisign_key = 'RWQBphd2+f6eiAqBsvDZEBXBGHQBJfeG6G+wJPPKxCZMoEQYpmoysKUN'
+  cache_file = '/config/cache/quad9-resolvers.md'
+  prefix = 'quad9-'
+  refresh_delay = 72
+
+  # Quad9 (anycast) dnssec/no-log/filter 9.9.9.9
+  [static.quad9-dnscrypt-ip4-filter-pri]
+  stamp = "sdns://AQMAAAAAAAAADDkuOS45Ljk6ODQ0MyBnyEe4yHWM0SAkVUO-dWdG3zTfHYTAC4xHA2jfgh2GPhkyLmRuc2NyeXB0LWNlcnQucXVhZDkubmV0"
+
+  # Quad9 (anycast) dnssec/no-log/filter 149.112.112.9
+  [static.quad9-dnscrypt-ip4-filter-alt]
+  stamp = "sdns://AQMAAAAAAAAAEjE0OS4xMTIuMTEyLjk6ODQ0MyBnyEe4yHWM0SAkVUO-dWdG3zTfHYTAC4xHA2jfgh2GPhkyLmRuc2NyeXB0LWNlcnQucXVhZDkubmV0"
+
+  # Quad9 (anycast) dnssec/no-log/filter 2620:fe::fe:9
+  [static.quad9-dnscrypt-ip6-filter-pri]
+  stamp = "sdns://AQMAAAAAAAAAFFsyNjIwOmZlOjpmZTo5XTo4NDQzIGfIR7jIdYzRICRVQ751Z0bfNN8dhMALjEcDaN-CHYY-GTIuZG5zY3J5cHQtY2VydC5xdWFkOS5uZXQ"
+
+  # Quad9 (anycast) dnssec/no-log/filter 2620:fe::9
+  [static.quad9-dnscrypt-ip6-filter-alt]
+  stamp = "sdns://AQMAAAAAAAAAEVsyNjIwOmZlOjo5XTo4NDQzIGfIR7jIdYzRICRVQ751Z0bfNN8dhMALjEcDaN-CHYY-GTIuZG5zY3J5cHQtY2VydC5xdWFkOS5uZXQ"
+
+  #[sources.relays]
+  #  urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/relays.md']
+  #  cache_file = '/config/cache/relays.md'
+  #  minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
+  #  refresh_delay = 72
+  #  prefix = ''
+  #
+  #[anonymized_dns]
+  #routes = [
+  #  { server_name='quad9-dnscrypt-ip4-filter-pri', via=['anon-cs-usca','anon-cs-usnv'] },
+  #  { server_name='quad9-dnscrypt-ip4-filter-alt', via=['anon-cs-usca','anon-cs-usnv'] },
+  #  { server_name='quad9-dnscrypt-ip6-filter-pri', via=['anon-cs-usca','anon-cs-usnv'] },
+  #  { server_name='quad9-dnscrypt-ip6-filter-alt', via=['anon-cs-usca','anon-cs-usnv'] }
+  #]
+
+[broken_implementations]
+  broken_query_padding = ['cisco', 'cisco-ipv6', 'cisco-familyshield']

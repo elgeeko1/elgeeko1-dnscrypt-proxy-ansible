@@ -1,0 +1,6 @@
+---
+- name: Configure filesystem
+  include_tasks: filesystem.yml
+
+- name: Configure dnscrypt-proxy
+  include_tasks: dnscrypt-proxy.yml

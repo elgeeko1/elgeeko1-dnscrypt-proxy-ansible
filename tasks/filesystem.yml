@@ -1,0 +1,15 @@
+---
+- name: Create dnscrypt persistant directory
+  file:
+    path: "{{ dnscrypt_proxy_path }}"
+    recurse: true
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode:  0775
+  become: true
+
+- name: Create dnscrypt cache directory
+  file:
+    path: "{{ dnscrypt_proxy_path }}/cache"
+    state: directory
+    mode:  0775

@@ -1,0 +1,42 @@
+---
+- name: Deploy dnscrypt-proxy.toml
+  template:
+    src:   "dnscrypt-proxy.toml.j2"
+    dest:  "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
+    mode:  0775
+  register: dnscrypt_config
+
+- name: Docker pull gists/dnscrypt-proxy:latest
+  docker_image:
+    name: djaydev/dnscrypt-proxy:latest
+    source: pull
+    force_source: true
+  register: dockerimage
+
+- name: Start dnscrypt-proxy docker container
+  docker_container:
+    name: dnscrypt-proxy
+    image: gists/dnscrypt-proxy:latest
+    state: started
+    restart: "{{ dnscrypt_config.changed or dockerimage.changed }}"
+    restart_policy: unless-stopped
+    volumes:
+      - "{{ dnscrypt_proxy_path }}/cache:/config/cache"
+      - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
+    ports:
+      - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"
+      - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/udp"
+      - "[::1]:{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"
+      - "[::1]:{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/udp"
+    dns_servers:
+      - "9.9.9.9"
+      - "149.112.112.112"
+      - "2620:fe::fe"
+      - "2620:fe::9"
+    env:
+      LOCAL_PORT: "'{{ dnscrypt_proxy_port }}'"
+    healthcheck:
+      interval: 60s
+      start_period: 10s
+      test: ["CMD", "dnscrypt-proxy", "-config", "/etc/dnscrypt-proxy/dnscrypt-proxy.toml", "-resolve", "example.com"]
+      timeout: 10s
