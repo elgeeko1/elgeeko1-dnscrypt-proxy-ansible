@@ -26,8 +26,8 @@
     ports:
       - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"
       - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/udp"
-      - "[::1]:{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"
-      - "[::1]:{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/udp"
+      - "[::0]:{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"
+      - "[::0]:{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/udp"
     dns_servers:
       - "9.9.9.9"
       - "149.112.112.112"
