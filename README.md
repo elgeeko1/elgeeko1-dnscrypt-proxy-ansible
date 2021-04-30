@@ -6,3 +6,4 @@ Features:
 
 ## Requirements
 - ansible
+- (optional, ipv6 only) docker configured for ipv6
