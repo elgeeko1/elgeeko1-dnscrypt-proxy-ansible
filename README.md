@@ -9,7 +9,7 @@ Provisioning host:
 - ansible 2.9 or later
 
 Host that will run dnscrypt-proxy:
-- Ubuntu 18.04 or later
+- OS that can be provisioned by Ansible (this role is tested with Ubuntu 18.04)
 - docker
  - An ansible role for installing docker is available from https://github.com/elgeeko1/elgeeko1-docker-ansible.git
 - (optional, ipv6 only) docker configured for ipv6
