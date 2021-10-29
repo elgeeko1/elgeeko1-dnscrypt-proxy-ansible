@@ -1,6 +1,6 @@
 ---
 - name: Deploy dnscrypt-proxy.toml
-  template:
+  ansible.builtin.template:
     src:   "dnscrypt-proxy.toml.j2"
     dest:  "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
     mode:  0755
@@ -8,14 +8,14 @@
   become: true
 
 - name: Docker pull gists/dnscrypt-proxy:latest
-  docker_image:
+  community.general.docker_image:
     name: gists/dnscrypt-proxy:latest
     source: pull
     force_source: true
   register: dockerimage
 
 - name: Start dnscrypt-proxy docker container
-  docker_container:
+  community.general.docker_container:
     name: dnscrypt-proxy
     image: gists/dnscrypt-proxy:latest
     state: started

@@ -1,6 +1,6 @@
 ---
 - name: Create dnscrypt persistant directory
-  file:
+  ansible.builtin.file:
     path: "{{ dnscrypt_proxy_path }}"
     state: directory
   become: true

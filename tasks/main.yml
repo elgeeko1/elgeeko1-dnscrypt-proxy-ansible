@@ -1,6 +1,13 @@
 ---
+- name: apt update cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600 # 1 hr
+    force_apt_get: true
+  become: true
+
 - name: Configure filesystem
-  include_tasks: filesystem.yml
+  ansible.builtin.import_tasks: filesystem.yml
 
 - name: Configure dnscrypt-proxy
-  include_tasks: dnscrypt-proxy.yml
+  ansible.builtin.import_tasks: dnscrypt-proxy.yml
