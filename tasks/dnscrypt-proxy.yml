@@ -7,19 +7,19 @@
   register: dnscrypt_config
   become: true
 
-- name: Docker pull gists/dnscrypt-proxy:latest
-  community.general.docker_image:
-    name: gists/dnscrypt-proxy:latest
-    source: pull
-    force_source: true
-  register: dockerimage
-
 - name: Start dnscrypt-proxy docker container
   community.general.docker_container:
     name: dnscrypt-proxy
-    image: gists/dnscrypt-proxy:latest
+    image: elgeeko/dnscrypt-proxy:latest
     state: started
-    restart: "{{ dnscrypt_config.changed or dockerimage.changed }}"
+    pull: true
+    comparisons:
+      image: strict
+      env: strict
+      volumes: strict
+    container_default_behavior: no_defaults
+    command_handling: correct
+    restart: "{{ dnscrypt_config.changed }}"
     restart_policy: unless-stopped
     volumes:
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
@@ -33,10 +33,3 @@
       - "149.112.112.112"
       - "2620:fe::fe"
       - "2620:fe::9"
-    env:
-      LOCAL_PORT: "'{{ dnscrypt_proxy_port }}'"
-    healthcheck:
-      interval: 60s
-      start_period: 10s
-      test: ["CMD", "dnscrypt-proxy", "-config", "/etc/dnscrypt-proxy/dnscrypt-proxy.toml", "-resolve", "example.com"]
-      timeout: 10s
