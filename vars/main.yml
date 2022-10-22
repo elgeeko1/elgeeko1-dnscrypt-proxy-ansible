@@ -1,0 +1,3 @@
+# is a restart of the dnscrypt-proxy container required?
+# set by handlers when configuration changes
+dnscrypt_proxy_restart_required: false

@@ -1,0 +1,4 @@
+---
+- name: dnscrypt_proxy_restart_required
+  set_fact:
+    dnscrypt_proxy_restart_required: true

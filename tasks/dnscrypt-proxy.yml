@@ -4,8 +4,18 @@
     src:   "dnscrypt-proxy.toml.j2"
     dest:  "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
     mode:  0755
-  register: dnscrypt_config
   become: true
+  notify: dnscrypt_proxy_restart_required
+
+- name: Docker pull elgeeko/dnscrypt-proxy:latest
+  community.general.docker_image:
+    name: elgeeko/dnscrypt-proxy:latest
+    source: pull
+    force_source: true
+  notify: dnscrypt_proxy_restart_required
+
+- name: Flush handlers to set variable dnscrypt_proxy_restart_required
+  ansible.builtin.meta: flush_handlers
 
 - name: Start dnscrypt-proxy docker container
   community.general.docker_container:
@@ -19,7 +29,7 @@
       volumes: strict
     container_default_behavior: no_defaults
     command_handling: correct
-    restart: "{{ dnscrypt_config.changed }}"
+    restart: "{{ dnscrypt_proxy_restart_required }}"
     restart_policy: unless-stopped
     volumes:
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
