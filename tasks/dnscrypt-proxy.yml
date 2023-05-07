@@ -5,34 +5,34 @@
     dest:  "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
     mode:  0755
   become: true
-  notify: dnscrypt_proxy_restart_required
+  register: dnscrypt_proxy_config
 
-- name: Docker pull elgeeko/dnscrypt-proxy:latest
+- name: Docker pull elgeeko/dnscrypt-proxy:{{ dnscrypt_proxy_docker_tag }}
   community.general.docker_image:
-    name: elgeeko/dnscrypt-proxy:latest
+    name: elgeeko/dnscrypt-proxy:{{ dnscrypt_proxy_docker_tag }}
     source: pull
     force_source: true
-  notify: dnscrypt_proxy_restart_required
 
-- name: Flush handlers to set variable dnscrypt_proxy_restart_required
-  ansible.builtin.meta: flush_handlers
+- name: Create docker volume dnscrypt-proxy-cache
+  community.docker.docker_volume:
+    name: dnscrypt-proxy-cache
 
 - name: Start dnscrypt-proxy docker container
   community.general.docker_container:
     name: dnscrypt-proxy
-    image: elgeeko/dnscrypt-proxy:latest
+    image: elgeeko/dnscrypt-proxy:{{ dnscrypt_proxy_docker_tag }}
     state: started
-    pull: true
     comparisons:
       image: strict
       env: strict
       volumes: strict
     container_default_behavior: no_defaults
     command_handling: correct
-    restart: "{{ dnscrypt_proxy_restart_required }}"
+    restart: "{{ dnscrypt_proxy_config.changed }}"
     restart_policy: unless-stopped
     volumes:
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
+      - dnscrypt-proxy-cache:/var/cache/dnscrypt-proxy
     ports:
       - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/tcp"
       - "{{ dnscrypt_proxy_port }}:{{ dnscrypt_proxy_port }}/udp"
@@ -43,5 +43,3 @@
       - "149.112.112.112"
       - "2620:fe::fe"
       - "2620:fe::9"
-    healthcheck:
-      test: ["NONE"]

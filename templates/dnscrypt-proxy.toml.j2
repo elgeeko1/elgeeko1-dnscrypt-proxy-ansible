@@ -5,6 +5,9 @@
 #                                            #
 ##############################################
 
+## This is an example configuration file.
+## You should adjust it to your needs, and save it as "dnscrypt-proxy.toml"
+##
 ## Online documentation is available here: https://dnscrypt.info/doc
 
 
@@ -34,24 +37,26 @@ server_names = [
 {% endif %}
 ]
 
+
 ## List of local addresses and ports to listen to. Can be IPv4 and/or IPv6.
 ## Example with both IPv4 and IPv6:
 ## listen_addresses = ['127.0.0.1:53', '[::1]:53']
 ##
 ## To listen to all IPv4 addresses, use `listen_addresses = ['0.0.0.0:53']`
 ## To listen to all IPv4+IPv6 addresses, use `listen_addresses = ['[::]:53']`
-#listen_addresses = ['0.0.0.0:{{ dnscrypt_proxy_port }}']
 listen_addresses = ['[::]:{{ dnscrypt_proxy_port }}']
 
 ## Maximum number of simultaneous client connections to accept
+
 max_clients = 1000
+
 
 ## Switch to a different system user after listening sockets have been created.
 ## Note (1): this feature is currently unsupported on Windows.
 ## Note (2): this feature is not compatible with systemd socket activation.
 ## Note (3): when using -pidfile, the PID file directory must be writable by the new user
 
-# user_name = 'dnscrypt'
+# user_name = 'nobody'
 
 
 ## Require servers (from remote sources) to satisfy specific properties
@@ -68,6 +73,10 @@ dnscrypt_servers = true
 # Use servers implementing the DNS-over-HTTPS protocol
 doh_servers = true
 
+# Use servers implementing the Oblivious DoH protocol
+odoh_servers = false
+
+
 ## Require servers defined by remote sources to satisfy specific properties
 
 # Server must support DNS security extensions (DNSSEC)
@@ -77,7 +86,7 @@ require_dnssec = false
 require_nolog = true
 
 # Server must not enforce its own blocklist (for parental control, ads blocking...)
-require_nofilter = false
+require_nofilter = true
 
 # Server names to avoid even if they match all criteria
 disabled_server_names = []
@@ -90,6 +99,13 @@ disabled_server_names = []
 ## only increase latency.
 
 force_tcp = false
+
+
+## Enable *experimental* support for HTTP/3 (DoH3, HTTP over QUIC)
+## Note that, like DNSCrypt but unlike other HTTP versions, this uses
+## UDP and (usually) port 443 instead of TCP.
+
+http3 = false
 
 
 ## SOCKS proxy
@@ -113,7 +129,7 @@ force_tcp = false
 timeout = 5000
 
 
-## Keepalive for HTTP (HTTPS, HTTP/2) queries, in seconds
+## Keepalive for HTTP (HTTPS, HTTP/2, HTTP/3) queries, in seconds
 
 keepalive = 30
 
@@ -158,7 +174,7 @@ keepalive = 30
 ## This file is different from other log files, and will not be
 ## automatically rotated by the application.
 
-# log_file = '/var/log/dnscrypt-proxy/dnscrypt-proxy.log'
+# log_file = 'dnscrypt-proxy.log'
 
 
 ## When using a log file, only keep logs from the most recent launch.
@@ -176,6 +192,13 @@ keepalive = 30
 cert_refresh_delay = 240
 
 
+## Initially don't check DNSCrypt server certificates for expiration, and
+## only start checking them after a first successful connection to a resolver.
+## This can be useful on routers with no battery-backed clock.
+
+# cert_ignore_timestamp = false
+
+
 ## DNSCrypt: Create a new, unique key for every single DNS query
 ## This may improve privacy but can also have a significant impact on CPU usage
 ## Only enable if you don't have a lot of network load
@@ -188,20 +211,18 @@ cert_refresh_delay = 240
 # tls_disable_session_tickets = false
 
 
-## DoH: Use a specific cipher suite instead of the server preference
+## DoH: Use TLS 1.2 and specific cipher suite instead of the server preference
 ## 49199 = TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
 ## 49195 = TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
 ## 52392 = TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305
 ## 52393 = TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305
-##  4865 = TLS_AES_128_GCM_SHA256
-##  4867 = TLS_CHACHA20_POLY1305_SHA256
 ##
 ## On non-Intel CPUs such as MIPS routers and ARM systems (Android, Raspberry Pi...),
 ## the following suite improves performance.
 ## This may also help on Intel CPUs running 32-bit operating systems.
 ##
 ## Keep tls_cipher_suite empty if you have issues fetching sources or
-## connecting to some DoH servers. Google and Cloudflare are fine with it.
+## connecting to some DoH servers.
 
 # tls_cipher_suite = [52392, 49199]
 
@@ -236,15 +257,25 @@ cert_refresh_delay = 240
 ## not be sent there. If you're using DNSCrypt or Anonymized DNS and your
 ## lists are up to date, these resolvers will not even be used.
 
-fallback_resolvers = [
+bootstrap_resolvers = [
   '9.9.9.9:53',
-  '8.8.8.8:53',
+  '8.8.8.8:53'{% if dnscrypt_proxy_use_ipv6 %},
   '2620:fe::fe:53',
   '2620:fe::9:53'
+{% endif %}
 ]
 
-
-## Always use the bootstrap resolver before the system DNS settings.
+## When internal DNS resolution is required, for example to retrieve
+## the resolvers list:
+##
+## - queries will be sent to dnscrypt-proxy itself, if it is already
+##   running with active servers (*)
+## - or else, queries will be sent to fallback servers
+## - finally, if `ignore_system_dns` is `false`, queries will be sent
+##   to the system DNS
+##
+## (*) this is incompatible with systemd sockets.
+## `listen_addrs` must not be empty.
 
 ignore_system_dns = true
 
@@ -352,6 +383,8 @@ reject_ttl = 10
 ## Cloaking returns a predefined address for a specific name.
 ## In addition to acting as a HOSTS file, it can also return the IP address
 ## of a different name. It will also do CNAME flattening.
+## If 'cloak_ptr' is set, then PTR (reverse lookups) are enabled
+## for cloaking rules that do not contain wild cards.
 ##
 ## See the `example-cloaking-rules.txt` file for an example
 
@@ -360,6 +393,7 @@ reject_ttl = 10
 ## TTL used when serving entries in cloaking-rules.txt
 
 # cloak_ttl = 600
+# cloak_ptr = false
 
 
 
@@ -436,6 +470,8 @@ cache_neg_max_ttl = 600
 
 
 ## Certificate file and key - Note that the certificate has to be trusted.
+## Can be generated using the following command:
+## openssl req -x509 -nodes -newkey rsa:2048 -days 5000 -sha256 -keyout localhost.pem -out localhost.pem
 ## See the documentation (wiki) for more information.
 
 # cert_file = 'localhost.pem'
@@ -451,20 +487,20 @@ cache_neg_max_ttl = 600
 
 [query_log]
 
-  ## Path to the query log file (absolute, or relative to the same directory as the config file)
-  ## Can be set to /dev/stdout in order to log to the standard output.
+## Path to the query log file (absolute, or relative to the same directory as the config file)
+## Can be set to /dev/stdout in order to log to the standard output.
 
-  # file = 'query.log'
-
-
-  ## Query log format (currently supported: tsv and ltsv)
-
-  format = 'tsv'
+# file = 'query.log'
 
 
-  ## Do not log these query types, to reduce verbosity. Keep empty to log everything.
+## Query log format (currently supported: tsv and ltsv)
 
-  # ignored_qtypes = ['DNSKEY', 'NS']
+format = 'tsv'
+
+
+## Do not log these query types, to reduce verbosity. Keep empty to log everything.
+
+# ignored_qtypes = ['DNSKEY', 'NS']
 
 
 
@@ -478,14 +514,14 @@ cache_neg_max_ttl = 600
 
 [nx_log]
 
-  ## Path to the query log file (absolute, or relative to the same directory as the config file)
+## Path to the query log file (absolute, or relative to the same directory as the config file)
 
-  # file = 'nx.log'
+# file = 'nx.log'
 
 
-  ## Query log format (currently supported: tsv and ltsv)
+## Query log format (currently supported: tsv and ltsv)
 
-  format = 'tsv'
+format = 'tsv'
 
 
 
@@ -508,19 +544,19 @@ cache_neg_max_ttl = 600
 
 [blocked_names]
 
-  ## Path to the file of blocking rules (absolute, or relative to the same directory as the config file)
+## Path to the file of blocking rules (absolute, or relative to the same directory as the config file)
 
-  # blocked_names_file = 'blocked-names.txt'
-
-
-  ## Optional path to a file logging blocked queries
-
-  # log_file = 'blocked-names.log'
+# blocked_names_file = 'blocked-names.txt'
 
 
-  ## Optional log format: tsv or ltsv (default: tsv)
+## Optional path to a file logging blocked queries
 
-  # log_format = 'tsv'
+# log_file = 'blocked-names.log'
+
+
+## Optional log format: tsv or ltsv (default: tsv)
+
+# log_format = 'tsv'
 
 
 
@@ -536,19 +572,19 @@ cache_neg_max_ttl = 600
 
 [blocked_ips]
 
-  ## Path to the file of blocking rules (absolute, or relative to the same directory as the config file)
+## Path to the file of blocking rules (absolute, or relative to the same directory as the config file)
 
-  # blocked_ips_file = 'blocked-ips.txt'
-
-
-  ## Optional path to a file logging blocked queries
-
-  # log_file = 'blocked-ips.log'
+# blocked_ips_file = 'blocked-ips.txt'
 
 
-  ## Optional log format: tsv or ltsv (default: tsv)
+## Optional path to a file logging blocked queries
 
-  # log_format = 'tsv'
+# log_file = 'blocked-ips.log'
+
+
+## Optional log format: tsv or ltsv (default: tsv)
+
+# log_format = 'tsv'
 
 
 
@@ -564,19 +600,19 @@ cache_neg_max_ttl = 600
 
 [allowed_names]
 
-  ## Path to the file of allow list rules (absolute, or relative to the same directory as the config file)
+## Path to the file of allow list rules (absolute, or relative to the same directory as the config file)
 
-  # allowed_names_file = 'allowed-names.txt'
-
-
-  ## Optional path to a file logging allowed queries
-
-  # log_file = 'allowed-names.log'
+# allowed_names_file = 'allowed-names.txt'
 
 
-  ## Optional log format: tsv or ltsv (default: tsv)
+## Optional path to a file logging allowed queries
 
-  # log_format = 'tsv'
+# log_file = 'allowed-names.log'
+
+
+## Optional log format: tsv or ltsv (default: tsv)
+
+# log_format = 'tsv'
 
 
 
@@ -585,25 +621,25 @@ cache_neg_max_ttl = 600
 #########################################################
 
 ## Allowed IP lists support the same patterns as IP blocklists
-## If an IP response matches an allow ip entry, the corresponding session
+## If an IP response matches an allowed entry, the corresponding session
 ## will bypass IP filters.
 ##
 ## Time-based rules are also supported to make some websites only accessible at specific times of the day.
 
 [allowed_ips]
 
-  ## Path to the file of allowed ip rules (absolute, or relative to the same directory as the config file)
+## Path to the file of allowed ip rules (absolute, or relative to the same directory as the config file)
 
-  # allowed_ips_file = 'allowed-ips.txt'
+# allowed_ips_file = 'allowed-ips.txt'
 
 
-  ## Optional path to a file logging allowed queries
+## Optional path to a file logging allowed queries
 
-  # log_file = 'allowed-ips.log'
+# log_file = 'allowed-ips.log'
 
-  ## Optional log format: tsv or ltsv (default: tsv)
+## Optional log format: tsv or ltsv (default: tsv)
 
-  # log_format = 'tsv'
+# log_format = 'tsv'
 
 
 
@@ -624,21 +660,21 @@ cache_neg_max_ttl = 600
 
 [schedules]
 
-  # [schedules.'time-to-sleep']
-  # mon = [{after='21:00', before='7:00'}]
-  # tue = [{after='21:00', before='7:00'}]
-  # wed = [{after='21:00', before='7:00'}]
-  # thu = [{after='21:00', before='7:00'}]
-  # fri = [{after='23:00', before='7:00'}]
-  # sat = [{after='23:00', before='7:00'}]
-  # sun = [{after='21:00', before='7:00'}]
+  # [schedules.time-to-sleep]
+  #   mon = [{after='21:00', before='7:00'}]
+  #   tue = [{after='21:00', before='7:00'}]
+  #   wed = [{after='21:00', before='7:00'}]
+  #   thu = [{after='21:00', before='7:00'}]
+  #   fri = [{after='23:00', before='7:00'}]
+  #   sat = [{after='23:00', before='7:00'}]
+  #   sun = [{after='21:00', before='7:00'}]
 
-  # [schedules.'work']
-  # mon = [{after='9:00', before='18:00'}]
-  # tue = [{after='9:00', before='18:00'}]
-  # wed = [{after='9:00', before='18:00'}]
-  # thu = [{after='9:00', before='18:00'}]
-  # fri = [{after='9:00', before='17:00'}]
+  # [schedules.work]
+  #   mon = [{after='9:00', before='18:00'}]
+  #   tue = [{after='9:00', before='18:00'}]
+  #   wed = [{after='9:00', before='18:00'}]
+  #   thu = [{after='9:00', before='18:00'}]
+  #   fri = [{after='9:00', before='17:00'}]
 
 
 
@@ -666,53 +702,53 @@ cache_neg_max_ttl = 600
 
 [sources]
 
-  ## An example of a remote source from https://github.com/DNSCrypt/dnscrypt-resolvers
+  ### An example of a remote source from https://github.com/DNSCrypt/dnscrypt-resolvers
 
-  [sources.'public-resolvers']
-    urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md', 'https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/public-resolvers.md', 'https://download.dnscrypt.net/resolvers-list/v3/public-resolvers.md']
-    cache_file = '/var/cache/dnscrypt-proxy/public-resolvers.md'
-    minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
-    refresh_delay = 72
-    prefix = ''
+  # [sources.public-resolvers]
+  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md', 'https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/public-resolvers.md']
+  #   cache_file = 'public-resolvers.md'
+  #   minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
+  #   refresh_delay = 72
+  #   prefix = ''
 
-  ## Anonymized DNS relays
+  ### Anonymized DNS relays
 
-  [sources.'relays']
-    urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/relays.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md', 'https://download.dnscrypt.net/resolvers-list/v3/relays.md']
-    cache_file = '/var/cache/dnscrypt-proxy/relays.md'
-    minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
-    refresh_delay = 72
-    prefix = ''
+  # [sources.relays]
+  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/relays.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/relays.md']
+  #   cache_file = 'relays.md'
+  #   minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
+  #   refresh_delay = 72
+  #   prefix = ''
 
-  ## ODoH (Oblivious DoH) servers and relays
+  ### ODoH (Oblivious DoH) servers and relays
 
-  # [sources.'odoh-servers']
-  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md', 'https://download.dnscrypt.net/resolvers-list/v3/odoh-servers.md']
-  #   cache_file = '/var/cache/dnscrypt-proxy/odoh-servers.md'
+  # [sources.odoh-servers]
+  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md']
+  #   cache_file = 'odoh-servers.md'
   #   minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
   #   refresh_delay = 24
   #   prefix = ''
-  # [sources.'odoh-relays']
-  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md', 'https://download.dnscrypt.net/resolvers-list/v3/odoh-relays.md']
-  #   cache_file = '/var/cache/dnscrypt-proxy/odoh-relays.md'
+  # [sources.odoh-relays]
+  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md']
+  #   cache_file = 'odoh-relays.md'
   #   minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
   #   refresh_delay = 24
   #   prefix = ''
 
-  ## Quad9
+  ### Quad9
 
   [sources.quad9-resolvers]
-     urls = ['https://www.quad9.net/quad9-resolvers.md']
-     minisign_key = 'RWQBphd2+f6eiAqBsvDZEBXBGHQBJfeG6G+wJPPKxCZMoEQYpmoysKUN'
-     cache_file = '/var/cache/dnscrypt-proxy/quad9-resolvers.md'
-     prefix = 'quad9-'
+    urls = ['https://www.quad9.net/quad9-resolvers.md']
+    minisign_key = 'RWQBphd2+f6eiAqBsvDZEBXBGHQBJfeG6G+wJPPKxCZMoEQYpmoysKUN'
+    cache_file = '/var/cache/dnscrypt-proxy/quad9-resolvers.md'
+    prefix = 'quad9-'
 
-  ## Another example source, with resolvers censoring some websites not appropriate for children
-  ## This is a subset of the `public-resolvers` list, so enabling both is useless
+  ### Another example source, with resolvers censoring some websites not appropriate for children
+  ### This is a subset of the `public-resolvers` list, so enabling both is useless.
 
-  # [sources.'parental-control']
-  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/parental-control.md', 'https://download.dnscrypt.info/resolvers-list/v3/parental-control.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/parental-control.md', 'https://download.dnscrypt.net/resolvers-list/v3/parental-control.md']
-  #   cache_file = '/var/cache/dnscrypt-proxy/parental-control.md'
+  # [sources.parental-control]
+  #   urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/parental-control.md', 'https://download.dnscrypt.info/resolvers-list/v3/parental-control.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/parental-control.md']
+  #   cache_file = 'parental-control.md'
   #   minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
 
 
@@ -723,16 +759,16 @@ cache_neg_max_ttl = 600
 
 [broken_implementations]
 
-# Cisco servers currently cannot handle queries larger than 1472 bytes, and don't
-# truncate responses larger than questions as expected by the DNSCrypt protocol.
-# This prevents large responses from being received over UDP and over relays.
-#
-# Older versions of the `dnsdist` server software had a bug with queries larger
-# than 1500 bytes. This is fixed since `dnsdist` version 1.5.0, but
-# some server may still run an outdated version.
-#
-# The list below enables workarounds to make non-relayed usage more reliable
-# until the servers are fixed.
+## Cisco servers currently cannot handle queries larger than 1472 bytes, and don't
+## truncate responses larger than questions as expected by the DNSCrypt protocol.
+## This prevents large responses from being received over UDP and over relays.
+##
+## Older versions of the `dnsdist` server software had a bug with queries larger
+## than 1500 bytes. This is fixed since `dnsdist` version 1.5.0, but
+## some server may still run an outdated version.
+##
+## The list below enables workarounds to make non-relayed usage more reliable
+## until the servers are fixed.
 
 fragments_blocked = ['cisco', 'cisco-ipv6', 'cisco-familyshield', 'cisco-familyshield-ipv6', 'cleanbrowsing-adult', 'cleanbrowsing-adult-ipv6', 'cleanbrowsing-family', 'cleanbrowsing-family-ipv6', 'cleanbrowsing-security', 'cleanbrowsing-security-ipv6']
 
@@ -742,15 +778,14 @@ fragments_blocked = ['cisco', 'cisco-ipv6', 'cisco-familyshield', 'cisco-familys
 #        Certificate-based client authentication for DoH        #
 #################################################################
 
-# Use a X509 certificate to authenticate yourself when connecting to DoH servers.
-# This is only useful if you are operating your own, private DoH server(s).
-# 'creds' maps servers to certificates, and supports multiple entries.
-# If you are not using the standard root CA, an optional "root_ca"
-# property set to the path to a root CRT file can be added to a server entry.
+## Use a X509 certificate to authenticate yourself when connecting to DoH servers.
+## This is only useful if you are operating your own, private DoH server(s).
+## 'creds' maps servers to certificates, and supports multiple entries.
+## If you are not using the standard root CA, an optional "root_ca"
+## property set to the path to a root CRT file can be added to a server entry.
 
 [doh_client_x509_auth]
 
-#
 # creds = [
 #    { server_name='*', client_cert='client.crt', client_key='client.key' }
 # ]
@@ -798,14 +833,14 @@ fragments_blocked = ['cisco', 'cisco-ipv6', 'cisco-familyshield', 'cisco-familys
 # ]
 
 
-# Skip resolvers incompatible with anonymization instead of using them directly
+## Skip resolvers incompatible with anonymization instead of using them directly
 
 skip_incompatible = false
 
 
-# If public server certificates for a non-conformant server cannot be
-# retrieved via a relay, try getting them directly. Actual queries
-# will then always go through relays.
+## If public server certificates for a non-conformant server cannot be
+## retrieved via a relay, try getting them directly. Actual queries
+## will then always go through relays.
 
 # direct_cert_fallback = false
 
@@ -833,13 +868,15 @@ skip_incompatible = false
 
 [dns64]
 
-## (Option 1) Static prefix(es) as Pref64::/n CIDRs.
+## Static prefix(es) as Pref64::/n CIDRs
+
 # prefix = ['64:ff9b::/96']
 
-## (Option 2) DNS64-enabled resolver(s) to discover Pref64::/n CIDRs.
+## DNS64-enabled resolver(s) to discover Pref64::/n CIDRs
 ## These resolvers are used to query for Well-Known IPv4-only Name (WKN) "ipv4only.arpa." to discover only.
 ## Set with your ISP's resolvers in case of custom prefixes (other than Well-Known Prefix 64:ff9b::/96).
 ## IMPORTANT: Default resolvers listed below support Well-Known Prefix 64:ff9b::/96 only.
+
 # resolver = ['[2606:4700:4700::64]:53', '[2001:4860:4860::64]:53']
 
 
@@ -853,5 +890,5 @@ skip_incompatible = false
 
 [static]
 
-  # [static.'myserver']
-  # stamp = 'sdns://AQcAAAAAAAAAAAAQMi5kbnNjcnlwdC1jZXJ0Lg'
+  # [static.myserver]
+  #   stamp = 'sdns://AQcAAAAAAAAAAAAQMi5kbnNjcnlwdC1jZXJ0Lg'

@@ -1,7 +1,10 @@
+# docker image version
+dnscrypt_proxy_docker_tag: latest
+
 # port to run dnscrypt-proxy
 dnscrypt_proxy_port: 53
 
-# path to install dnscrypt-proxy persistant storage
+# path to install dnscrypt-proxy persistant storage on host system
 dnscrypt_proxy_path: /opt/dnscrypt-proxy
 
 # use ipv6 in dnscrypt-proxy?
