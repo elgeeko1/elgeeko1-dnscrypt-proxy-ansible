@@ -34,8 +34,8 @@
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
       - dnscrypt-proxy-cache:/var/cache/dnscrypt-proxy
     ports:
-      - "{{ dnscrypt_proxy_port }}:5053/tcp"
-      - "{{ dnscrypt_proxy_port }}:5053/udp"
+      - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/tcp"
+      - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/udp"
       - "[::0]:{{ dnscrypt_proxy_port }}:5053/tcp"
       - "[::0]:{{ dnscrypt_proxy_port }}:5053/udp"
     dns_servers:
