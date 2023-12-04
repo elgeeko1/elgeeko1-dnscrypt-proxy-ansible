@@ -33,13 +33,5 @@
     volumes:
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
       - dnscrypt-proxy-cache:/var/cache/dnscrypt-proxy
-    ports:
-      - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/tcp"
-      - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/udp"
-      - "[::0]:{{ dnscrypt_proxy_port }}:5053/tcp"
-      - "[::0]:{{ dnscrypt_proxy_port }}:5053/udp"
-    dns_servers:
-      - "9.9.9.9"
-      - "149.112.112.112"
-      - "2620:fe::fe"
-      - "2620:fe::9"
+    ports: "{{ dnscrypt_proxy_use_ipv6 | ternary(dnscrypt_proxy_ports_ipv6, dnscrypt_proxy_ports_ipv4) }}"
+    dns_servers: "{{ dnscrypt_proxy_use_ipv6 | ternary(dnscrypt_proxy_host_dns_ipv6, dnscrypt_proxy_host_dns_ipv4) }}"

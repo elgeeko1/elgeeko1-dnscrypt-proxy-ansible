@@ -9,3 +9,23 @@ dnscrypt_proxy_path: /opt/dnscrypt-proxy
 
 # use ipv6 in dnscrypt-proxy?
 dnscrypt_proxy_use_ipv6: false
+
+dnscrypt_proxy_ports_ipv4:
+  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/tcp"
+  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/udp"
+
+dnscrypt_proxy_ports_ipv6:
+  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/tcp"
+  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/udp"
+  - "[::0]:{{ dnscrypt_proxy_port }}:5053/tcp"
+  - "[::0]:{{ dnscrypt_proxy_port }}:5053/udp"
+
+dnscrypt_proxy_host_dns_ipv4:
+  - "9.9.9.9"
+  - "149.112.112.112"
+
+dnscrypt_proxy_host_dns_ipv6:
+  - "9.9.9.9"
+  - "149.112.112.112"
+  - "2620:fe::fe"
+  - "2620:fe::9"
