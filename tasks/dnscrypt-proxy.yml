@@ -1,17 +1,28 @@
 ---
 - name: Deploy dnscrypt-proxy.toml
-  ansible.builtin.template:
-    src:   "dnscrypt-proxy.toml.j2"
-    dest:  "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
-    mode:  0755
-  become: true
   register: dnscrypt_proxy_config
+  become: true
+  ansible.builtin.template:
+    src: "dnscrypt-proxy.toml.j2"
+    dest: "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml"
+    mode: u=rwx,g=rx,o=rx
+
+- name: Configure Docker macvlan network {{ dnscrypt_network_macvlan.name }}
+  when: dnscrypt_network_mode == 'macvlan'
+  community.general.docker_network:
+    name: "{{ dnscrypt_network_macvlan.name }}"
+    driver: macvlan
+    driver_options:
+      macvlan_mode: private
+      parent: "{{ dnscrypt_network_macvlan.interface }}"
+    ipam_config:
+      - subnet: "{{ dnscrypt_network_macvlan.subnet }}"
+        gateway: "{{ dnscrypt_network_macvlan.gateway }}"
 
 - name: Docker pull elgeeko/dnscrypt-proxy:{{ dnscrypt_proxy_docker_tag }}
   community.general.docker_image:
     name: elgeeko/dnscrypt-proxy:{{ dnscrypt_proxy_docker_tag }}
     source: pull
-    force_source: true
 
 - name: Create docker volume dnscrypt-proxy-cache
   community.docker.docker_volume:
@@ -30,8 +41,14 @@
     command_handling: correct
     restart: "{{ dnscrypt_proxy_config.changed }}"
     restart_policy: unless-stopped
+    capabilities:
+      - CAP_NET_BIND_SERVICE  # allow binding to port 53
+    networks: "{{ (dnscrypt_network_mode == 'macvlan') | ternary( \
+        [{'name': dnscrypt_network_macvlan.name, 'ipv4_address': dnscrypt_network_macvlan.ipv4_address}], \
+        [{'name': dnscrypt_network_mode }]  ) }}"
     volumes:
       - "{{ dnscrypt_proxy_path }}/dnscrypt-proxy.toml:/etc/dnscrypt-proxy/dnscrypt-proxy.toml:ro"
       - dnscrypt-proxy-cache:/var/cache/dnscrypt-proxy
-    ports: "{{ dnscrypt_proxy_use_ipv6 | ternary(dnscrypt_proxy_ports_ipv6, dnscrypt_proxy_ports_ipv4) }}"
+    ports: "{{ (dnscrypt_network_mode == 'bridge') | ternary(dnscrypt_proxy_published_ports, []) }}"
     dns_servers: "{{ dnscrypt_proxy_use_ipv6 | ternary(dnscrypt_proxy_host_dns_ipv6, dnscrypt_proxy_host_dns_ipv4) }}"
+    log_driver: "local"  # default doesn't log rotate

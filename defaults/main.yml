@@ -1,8 +1,15 @@
 # docker image version
 dnscrypt_proxy_docker_tag: latest
 
-# port to run dnscrypt-proxy
-dnscrypt_proxy_port: 53
+# port to run dnscrypt-proxy on the host
+dnscrypt_proxy_port: 5053
+
+# docker network mode for dnscrypt-proxy container
+# values:
+#   host: least secure, easiest to configure, works best for mapping to host port 53
+#   macvlan: more secure, more complicated configuration, works best for a separate IP hosting port 53
+#   bridge: more secure, easiest when mapping to a host port other than 53
+dnscrypt_network_mode: bridge
 
 # path to install dnscrypt-proxy persistant storage on host system
 dnscrypt_proxy_path: /opt/dnscrypt-proxy
@@ -10,15 +17,16 @@ dnscrypt_proxy_path: /opt/dnscrypt-proxy
 # use ipv6 in dnscrypt-proxy?
 dnscrypt_proxy_use_ipv6: false
 
-dnscrypt_proxy_ports_ipv4:
-  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/tcp"
-  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/udp"
-
-dnscrypt_proxy_ports_ipv6:
-  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/tcp"
-  - "0.0.0.0:{{ dnscrypt_proxy_port }}:5053/udp"
-  - "[::0]:{{ dnscrypt_proxy_port }}:5053/tcp"
-  - "[::0]:{{ dnscrypt_proxy_port }}:5053/udp"
+# in macvlan mode, the macvlan network settings
+# this may work out of the box but docker will
+# assign an arbitrary IP address which may conflict
+# with your network; better to override in your playbook
+dnscrypt_network_macvlan:
+  name: "dnscrypt"
+  subnet: "{{ (ansible_default_ipv4.network ~ '/' ~ ansible_default_ipv4.netmask) | ansible.utils.ipaddr('network/prefix') }}"
+  gateway: "{{ ansible_default_ipv4.gateway }}"
+  interface: "{{ ansible_default_ipv4.interface }}"
+  ipv4_address: "" # if empty, ipv4 will be automatically set by docker
 
 dnscrypt_proxy_host_dns_ipv4:
   - "9.9.9.9"

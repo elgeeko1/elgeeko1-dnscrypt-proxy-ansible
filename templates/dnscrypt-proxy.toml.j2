@@ -45,9 +45,9 @@ server_names = [
 ## To listen to all IPv4 addresses, use `listen_addresses = ['0.0.0.0:53']`
 ## To listen to all IPv4+IPv6 addresses, use `listen_addresses = ['[::]:53']`
 {% if dnscrypt_proxy_use_ipv6 %}
-listen_addresses = ['[::]:5053']
+listen_addresses = ['[::]:{{ dnscrypt_proxy_port }}']
 {% else %}
-listen_addresses = ['0.0.0.0:5053']
+listen_addresses = ['0.0.0.0:{{ dnscrypt_proxy_port }}']
 {% endif %}
 
 ## Maximum number of simultaneous client connections to accept
